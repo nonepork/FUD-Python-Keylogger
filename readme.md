@@ -12,4 +12,5 @@ Just a simple discord webhook keylogger written in python.
 ## Usage
 
 1. change the webhook_url to your discord webhook, and seconds to your desire interval
-2. uv run ./main.py
+2. `uv sync`
+3. `uv run ./main.py`
