@@ -1,7 +1,6 @@
 [project]
 name = "fud-webhook-keylogger"
 version = "0.1.0"
-description = "keylogger, what more?"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

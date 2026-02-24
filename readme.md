@@ -11,7 +11,5 @@ Just a simple discord webhook keylogger written in python.
 
 ## Usage
 
-1. pip install -r requirements.txt
-2. change the WEBHOOK_URL to your discord webhook, and seconds to your desire interval
-3. python main.py
-4. profit
+1. change the webhook_url to your discord webhook, and seconds to your desire interval
+2. uv run ./main.py
